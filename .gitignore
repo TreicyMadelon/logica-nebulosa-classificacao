@@ -6,7 +6,7 @@ __pycache__/
 .DS_Store
 
 # Bases de origem: 8,5 GB de ImageNet e Pascal VOC.
-# O LEIA-ME explica como baixar; nunca entram no repositório.
+# O README explica como baixar; nunca entram no repositório.
 bases_origem/
 
 # Pesos baixados na primeira execução (YOLO da triagem).

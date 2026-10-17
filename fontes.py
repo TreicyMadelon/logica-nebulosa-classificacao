@@ -53,7 +53,7 @@ def candidatas_imagenet():
     """Todas as fotos do conjunto de validação do ImageNet, com o código da categoria."""
     pasta_xml, pasta_img = config.PASTA_IMAGENET_ANOTACOES, config.PASTA_IMAGENET_IMAGENS
     if not pasta_xml.is_dir() or not pasta_img.is_dir():
-        sys.exit(f"Não encontrei o ImageNet (validação) em:\n  {pasta_img}\n  {pasta_xml}\nVeja o LEIA-ME.")
+        sys.exit(f"Não encontrei o ImageNet (validação) em:\n  {pasta_img}\n  {pasta_xml}\nVeja o README.")
     imagens = {p.stem: p for p in pasta_img.rglob("*") if p.suffix.lower() in EXTENSOES_IMAGEM}
     candidatas = []
     for caminho_xml in sorted(pasta_xml.rglob("*.xml")):
@@ -77,7 +77,7 @@ def candidatas_voc():
     """Todas as fotos do Pascal VOC 2012, com a categoria do maior objeto anotado."""
     pasta_xml, pasta_img = config.PASTA_VOC / "Annotations", config.PASTA_VOC / "JPEGImages"
     if not pasta_xml.is_dir() or not pasta_img.is_dir():
-        sys.exit(f"Não encontrei o Pascal VOC 2012 em:\n  {config.PASTA_VOC}\nVeja o LEIA-ME.")
+        sys.exit(f"Não encontrei o Pascal VOC 2012 em:\n  {config.PASTA_VOC}\nVeja o README.")
     candidatas = []
     for caminho_xml in sorted(pasta_xml.glob("*.xml")):
         objetos = ler_anotacao(caminho_xml)["objetos"]
