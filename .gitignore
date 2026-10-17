@@ -1,0 +1,29 @@
+# Ambiente e cache
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+
+# Bases de origem: 8,5 GB de ImageNet e Pascal VOC.
+# O LEIA-ME explica como baixar; nunca entram no repositório.
+bases_origem/
+
+# Pesos baixados na primeira execução (YOLO da triagem).
+yolov8n.pt
+
+# As 400 imagens da base e as cópias feitas pela triagem e pela avaliação.
+# Vêm do ImageNet e do Pascal VOC, que não permitem redistribuição.
+# metadados.csv e teste_fixo.txt remontam a base idêntica com montar_base.py:
+# a semente do sorteio é fixa (config.SEMENTE).
+base_imagens/cachorro/
+base_imagens/nao_cachorro/
+triagem/descartadas/
+resultados/rodada_*/FP/
+resultados/rodada_*/FN/
+
+# Números extraídos pelo EfficientNetB0: refeitos por montar_bairro.py.
+vetores/
+
+# Relatório da triagem em HTML: aponta para as imagens, que não estão aqui.
+triagem/relatorio.html

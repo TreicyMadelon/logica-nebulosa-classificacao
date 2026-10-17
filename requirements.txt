@@ -1,0 +1,9 @@
+# Projeto: extração (EfficientNetB0), Fuzzy k-NN, split, avaliação e app.
+tensorflow>=2.16
+numpy
+pillow
+scikit-learn
+streamlit>=1.30
+
+# Só para rodar os testes (opcional).
+pytest
