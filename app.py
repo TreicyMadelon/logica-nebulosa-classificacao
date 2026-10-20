@@ -2,11 +2,11 @@
 
 Rodar:  streamlit run app.py
 
-Visão principal (home): upload → a classe com o grau (pertinência da classe vencedora)
-e, sempre, a caixa colorida da faixa em que a pertinência caiu (verde, amarela ou
-vermelha), com as duas pertinências; na área cinzenta, também as fotos das 5 vizinhas.
-Fecha com o bloco "Imagens anteriores", que fica só na sessão (st.session_state) e
-nunca entra na base.
+Visão principal (home): upload → a classe com o grau (pertinência da classe vencedora),
+a caixa colorida da faixa em que a pertinência caiu (verde, amarela ou vermelha) com as
+duas pertinências, e as fotos das 5 vizinhas que explicam de onde saiu o número. Fecha
+com o bloco "Imagens anteriores", que fica só na sessão (st.session_state) e nunca
+entra na base.
 
 Visão admin: os resultados no teste fixo (rodadas, matriz de confusão, acurácia,
 meta e galeria da área cinzenta), lidos do que o avaliar.py registrou.
@@ -105,9 +105,11 @@ def texto_caixa(resultado):
 
 
 def mostrar_resultado(item):
-    """Etapa 11: sempre a classe com o grau e a caixa da faixa; as 5 fotos só na área cinzenta.
+    """Etapa 11: sempre a classe com o grau, a caixa da faixa e as fotos das vizinhas.
 
-    Nenhuma das caixas muda a classe: elas só explicam a decisão que o Fuzzy k-NN já tomou.
+    As vizinhas aparecem nas três faixas, não só na cinzenta: são elas que explicam de onde
+    saiu a pertinência, tanto numa resposta folgada quanto numa apertada. Nenhuma das caixas
+    muda a classe: elas só explicam a decisão que o Fuzzy k-NN já tomou.
     """
     resultado = item["resultado"]
     col_imagem, col_texto = st.columns([1, 2])
@@ -117,10 +119,9 @@ def mostrar_resultado(item):
         st.markdown(f"## {resultado['mensagem']}")
         caixa = getattr(st, FAIXAS[faixa_do_resultado(resultado)][2])
         caixa(texto_caixa(resultado))
-    if resultado["area_cinzenta"]:
-        st.markdown(f"**As {len(resultado['vizinhas'])} imagens do bairro mais próximas** "
-                    "(da mais próxima para a mais distante)")
-        mostrar_vizinhas(resultado["vizinhas"])
+    st.markdown(f"**As {len(resultado['vizinhas'])} imagens do bairro mais próximas** "
+                "(da mais próxima para a mais distante)")
+    mostrar_vizinhas(resultado["vizinhas"])
 
 
 def selecionar(ident):
