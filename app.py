@@ -8,6 +8,9 @@ duas pertinências, e as fotos das 5 vizinhas que explicam de onde saiu o númer
 com o bloco "Imagens anteriores", que fica só na sessão (st.session_state) e nunca
 entra na base.
 
+A classe, a faixa, a cor da caixa e todo número na tela saem da pertinência a cachorro
+com duas casas (fuzzy_knn.pertinencia_na_tela): nada aqui arredonda por conta própria.
+
 Visão admin: os resultados no teste fixo (rodadas, matriz de confusão, acurácia,
 meta e galeria da área cinzenta), lidos do que o avaliar.py registrou.
 """
@@ -93,7 +96,7 @@ def texto_caixa(resultado):
     """O título da faixa, as duas pertinências (a vencedora primeiro) e a contagem das vizinhas."""
     classe, vizinhas = resultado["classe"], resultado["vizinhas"]
     titulo, regra, _ = FAIXAS[faixa_do_resultado(resultado)]
-    pertinencias = texto_pertinencias(classe, resultado["p_nao"], resultado["p_cachorro"])
+    pertinencias = texto_pertinencias(classe, resultado["p_cachorro"])
     caes = sum(1 for _, rotulo in vizinhas if rotulo == 1)
     contagem = {1: plural(caes, "cachorro", "cachorros"),
                 0: plural(len(vizinhas) - caes, "não cachorro", "não cachorros")}
@@ -110,6 +113,9 @@ def mostrar_resultado(item):
     As vizinhas aparecem nas três faixas, não só na cinzenta: são elas que explicam de onde
     saiu a pertinência, tanto numa resposta folgada quanto numa apertada. Nenhuma das caixas
     muda a classe: elas só explicam a decisão que o Fuzzy k-NN já tomou.
+
+    O título e a caixa saem do mesmo número em duas casas que decidiu a classe e a faixa,
+    então a cor da caixa nunca desmente o número que ela mostra.
     """
     resultado = item["resultado"]
     col_imagem, col_texto = st.columns([1, 2])
@@ -262,8 +268,12 @@ def mostrar_acuracia_e_meta(rodada):
 
 
 def legenda_teste(item):
+    """A pertinência sai da coluna de duas casas, a mesma que decidiu a classe e a faixa.
+
+    Rodadas antigas, gravadas antes dessa coluna existir, caem na medida crua.
+    """
     categoria = dados.nome_categoria(item["dataset"], item["categoria_original"])
-    pertinencia = formatar_pertinencia(float(item["p_cachorro"]))
+    pertinencia = formatar_pertinencia(float(item.get("p_cachorro_tela") or item["p_cachorro"]))
     return f"{categoria} · pertinência a cachorro {pertinencia}"
 
 

@@ -31,27 +31,6 @@ def fuzzy_knn(X_treino_num, y_treino, X_novo_num, k=config.K):
     return np.array(pertinencias), vizinhas               # ex.: [[0.35, 0.65], ...] e [[12, 7, 431, 88, 5], ...]
 
 
-def decidir(p_nao, p_cachorro):
-    """Classe = a de maior pertinência, por um if comum (sem corte).
-
-    Exatamente 0,50 fica como não cachorro: só é cachorro quando a pertinência
-    a cachorro é a maior.
-    """
-    if p_cachorro > p_nao:
-        return 1        # é cachorro
-    return 0            # não é cachorro
-
-
-def na_area_cinzenta(p_cachorro):
-    """Faixa do professor, lida de config.FAIXA_CINZENTA (hoje pertinência a cachorro de
-    0,40 a 0,60, limites inclusive, com a classe vencedora de 0,51 a 0,60).
-
-    Só marca a dúvida; não muda a classe.
-    """
-    minimo, maximo = config.FAIXA_CINZENTA
-    return minimo <= p_cachorro <= maximo
-
-
 def formatar_pertinencia(valor):
     """Duas casas decimais e vírgula, com o arredondamento convencional: o meio sobe.
 
@@ -61,6 +40,41 @@ def formatar_pertinencia(valor):
     """
     arredondado = Decimal(str(valor)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     return f"{arredondado}".replace(".", ",")
+
+
+def pertinencia_na_tela(p_cachorro):
+    """A pertinência a cachorro com duas casas: o único número de que tudo sai.
+
+    A classe, a faixa, a cor da caixa e o que a tela mostra saem daqui. A pertinência a
+    não cachorro é 1 menos este valor — as duas nunca são arredondadas em separado, senão
+    poderiam não somar 1,00 na tela.
+    """
+    return float(formatar_pertinencia(float(p_cachorro)).replace(",", "."))
+
+
+def decidir(p_cachorro):
+    """Classe = a de maior pertinência, por um if comum (sem corte).
+
+    Com a pertinência a cachorro em duas casas, a de não cachorro é 1 menos ela, então
+    comparar as duas é comparar com 0,50. Exatamente 0,50 fica como não cachorro: só é
+    cachorro quando a pertinência a cachorro é a maior.
+    """
+    p_cachorro = pertinencia_na_tela(p_cachorro)
+    if p_cachorro > 1 - p_cachorro:
+        return 1        # é cachorro
+    return 0            # não é cachorro
+
+
+def na_area_cinzenta(p_cachorro):
+    """Faixa do professor, lida de config.FAIXA_CINZENTA (hoje pertinência a cachorro de
+    0,40 a 0,60, limites inclusive, com a pertinência da classe vencedora de 0,50 a 0,60,
+    com duas casas).
+
+    A faixa sai do mesmo número em duas casas que decide a classe: uma pertinência de
+    0,3965 conta como 0,40 e entra na faixa. Só marca a dúvida; não muda a classe.
+    """
+    minimo, maximo = config.FAIXA_CINZENTA
+    return minimo <= pertinencia_na_tela(p_cachorro) <= maximo
 
 
 def limites_area_cinzenta():
@@ -73,38 +87,45 @@ def limites_area_cinzenta():
     return formatar_pertinencia(minimo), formatar_pertinencia(maximo)
 
 
-def mensagem(classe, p_nao, p_cachorro):
+def mensagem(classe, p_cachorro):
     """A classe e a pertinência da classe vencedora: "<classe> · pertinência <valor>".
+
+    O valor sai do mesmo número em duas casas que decidiu a classe, então nunca
+    desmente a classe que vem antes dele.
 
     Pertinência, não porcentagem: o número é contínuo de 0 a 1 e diz o quanto a imagem
     pertence ao conjunto, não a chance de um evento.
     """
+    p_cachorro = pertinencia_na_tela(p_cachorro)
     texto = "É cachorro" if classe == 1 else "Não é cachorro"
-    return f"{texto} · pertinência {formatar_pertinencia(max(p_nao, p_cachorro))}"
+    return f"{texto} · pertinência {formatar_pertinencia(max(p_cachorro, 1 - p_cachorro))}"
 
 
-def texto_pertinencias(classe, p_nao, p_cachorro):
+def texto_pertinencias(classe, p_cachorro):
     """As duas pertinências, a vencedora primeiro:
     "<classe vencedora> <valor> · <outra classe> <1 − valor>".
 
-    A perdedora sai de 1 menos a vencedora já arredondada, para as duas somarem 1,00 na tela.
+    As duas saem do mesmo número em duas casas: a de não cachorro é 1 menos a de
+    cachorro, então somam 1,00 na tela sempre.
     """
     nomes = {1: "cachorro", 0: "não cachorro"}
-    vencedora = formatar_pertinencia(max(p_nao, p_cachorro))
-    perdedora = formatar_pertinencia(1 - float(vencedora.replace(",", ".")))
-    return f"{nomes[classe]} {vencedora} · {nomes[1 - classe]} {perdedora}"
+    p_cachorro = pertinencia_na_tela(p_cachorro)
+    valores = {1: p_cachorro, 0: 1 - p_cachorro}
+    return (f"{nomes[classe]} {formatar_pertinencia(valores[classe])} · "
+            f"{nomes[1 - classe]} {formatar_pertinencia(valores[1 - classe])}")
 
 
 def classificar(X_treino_num, y_treino, x_num, k=config.K):
     """Classifica uma imagem (os 1.280 números dela) contra o bairro."""
     pert, viz = fuzzy_knn(X_treino_num, y_treino, [x_num], k)
     p_nao, p_cachorro = float(pert[0][0]), float(pert[0][1])
-    classe = decidir(p_nao, p_cachorro)
+    classe = decidir(p_cachorro)
     return {
-        "p_nao": p_nao,
+        "p_nao": p_nao,                                  # medida crua; a tela usa a de duas casas
         "p_cachorro": p_cachorro,
+        "p_cachorro_tela": pertinencia_na_tela(p_cachorro),
         "classe": classe,
-        "mensagem": mensagem(classe, p_nao, p_cachorro),
+        "mensagem": mensagem(classe, p_cachorro),
         "area_cinzenta": na_area_cinzenta(p_cachorro),
         "vizinhas": [int(i) for i in viz[0]],
     }

@@ -37,7 +37,9 @@ PASTA_VOC = RAIZ / "bases_origem" / "VOCdevkit" / "VOC2012"                  # V
 
 # ------------------------------------------------------------------ Fuzzy k-NN
 K = 5                           # quantas vizinhas votam
-FAIXA_CINZENTA = (0.40, 0.60)   # pertinência a cachorro (classe vencedora de 0,51 a 0,60), limites inclusive
+# Pertinência a cachorro, limites inclusive (pertinência da classe vencedora de 0,50 a 0,60,
+# com duas casas). A faixa é decidida pelo mesmo número de duas casas que decide a classe.
+FAIXA_CINZENTA = (0.40, 0.60)
 
 # ------------------------------------------------------------------ extrator
 TAMANHO_IMAGEM = (224, 224)     # só redimensiona; a normalização já está dentro do modelo

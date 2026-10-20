@@ -1,2 +1,3 @@
 ﻿rodada,o_que_mudou,extrator,k,bairro,VP,FN,FP,VN,acuracia,area_cinzenta,meta,data
 1,ponto de partida: bairro com 320 (160 + 160),efficientnetb0,5,320,37,3,2,38,0.9375,4,sim,2026-10-13
+2,ajuste de código: classe e faixa com a pertinência em duas casas,efficientnetb0,5,320,37,3,2,38,0.9375,7,sim,2026-10-20

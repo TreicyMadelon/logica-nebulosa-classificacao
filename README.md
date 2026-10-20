@@ -70,7 +70,9 @@ A área cinzenta não muda a classe: só marca que a decisão foi apertada, e as
 
 A tela junta o binário e o fuzzy ao mesmo tempo. A mensagem principal segue a regra `<classe> · pertinência <valor>`: a classe é "É cachorro" ou "Não é cachorro", e o valor é a pertinência da classe vencedora calculada para aquela imagem, de 0 a 1, com duas casas decimais. Abaixo dela vem o bloco colorido da faixa, com a linha "pertinência da imagem:", que repete a vencedora e mostra a outra classe. Nenhuma das duas frases usa porcentagem: pertinência não é probabilidade.
 
-Arredondamento: com duas casas, uma pertinência da vencedora pouco acima de 0,50 (abaixo de 0,505) aparece como 0,50 mesmo quando a classe é cachorro. A classe vem do valor completo, não do arredondado.
+Arredondamento: a pertinência a cachorro é arredondada para **duas casas**, pelo arredondamento convencional (o meio sobe), e **é desse único número que sai tudo** — a classe (acima de 0,50 é cachorro; 0,50 fica não cachorro), a faixa, a cor da caixa e o que a tela mostra. A pertinência a não cachorro é 1 menos esse valor, então as duas sempre somam 1,00 na tela.
+
+Por isso a tela nunca se contradiz. Uma pertinência de 0,3965 aparece como 0,40 **e** entra na área cinzenta, em vez de aparecer como 0,40 numa caixa que diz "abaixo de 0,40". E uma de 0,5049 aparece como 0,50 **e** é classificada como não cachorro, em vez de dizer "É cachorro · pertinência 0,50".
 
 As imagens enviadas ficam no bloco "Imagens anteriores" só durante a sessão e nunca entram na base.
 
@@ -187,7 +189,7 @@ bases_origem/
 
 `streamlit run app.py`. Na barra lateral, escolha a visão:
 
-- **Visão principal**: envie uma imagem e veja a classe com o grau. Abaixo vem sempre a caixa da faixa em que a pertinência caiu — verde "🐶 Imagem na área é cachorro", amarela "⚠ Imagem na área cinzenta" ou vermelha "❌ Imagem na área não é cachorro" — com a regra da faixa, as duas pertinências e a contagem das vizinhas. Depois da caixa, também sempre, as fotos das 5 vizinhas com a classe de cada uma. O bloco "Imagens anteriores" guarda as imagens enviadas só durante a sessão: somem ao fechar ou recarregar a página e não entram na base.
+- **Visão principal**: abre com um texto curto que separa **pertinência** (o número de 0 a 1 que o Fuzzy k-NN calcula) de **classe** (a decisão tirada dele), e explica por que o projeto segue a regra da maior pertinência em vez de um alfa-corte escolhido à mão. Envie uma imagem e veja a classe com o grau. Abaixo vem sempre a caixa da faixa em que a pertinência caiu — verde "🐶 Imagem na área é cachorro", amarela "⚠ Imagem na área cinzenta" ou vermelha "❌ Imagem na área não é cachorro" — com a regra da faixa, as duas pertinências e a contagem das vizinhas. Depois da caixa, também sempre, as fotos das 5 vizinhas com a classe de cada uma. O bloco "Imagens anteriores" guarda as imagens enviadas só durante a sessão: somem ao fechar ou recarregar a página e não entram na base.
 - **Visão admin**: tabela das rodadas e, para a rodada escolhida, a matriz de confusão, a acurácia, a meta e a galeria da área cinzenta nas 4 situações (VP, FN, VN, FP), cada imagem com as suas 5 vizinhas.
 
 Meta no teste fixo: acurácia ≥ 90% (72 das 80), com FN ≤ 6 e FP ≤ 6.
@@ -214,9 +216,9 @@ Uma mudança por rodada (dados, uma configuração ou o código), sempre testada
 | RF1 · upload | `app.py` (`visao_principal`): a imagem é analisada sozinha, sem remontar o bairro |
 | RF2 · mesmo EfficientNetB0 | `extrator.py`: só redimensiona para 224 × 224, sem normalizar à mão; o app usa o extrator gravado com o bairro |
 | RF3 · pertinências | `fuzzy_knn.py` (`fuzzy_knn`): 5 vizinhas, peso 1/d², as duas pertinências somam 1 |
-| RF4 · decisão | `fuzzy_knn.py` (`decidir`): maior pertinência por um `if` comum; exatamente 0,50 → não cachorro |
+| RF4 · decisão | `fuzzy_knn.py` (`decidir`): maior pertinência por um `if` comum, com as pertinências em duas casas; empate em 0,50 → não cachorro |
 | RF5 · resultado | `fuzzy_knn.py` (`mensagem`): classe + pertinência da classe vencedora |
-| RF6 · área cinzenta | `fuzzy_knn.py` (`na_area_cinzenta`) e a caixa amarela do `app.py`: o aviso de que a decisão foi apertada |
+| RF6 · área cinzenta | `fuzzy_knn.py` (`na_area_cinzenta`) e o bloco amarelo do `app.py`: o aviso de que a decisão foi apertada; ele não muda a classe |
 | RF7 · imagens anteriores | `app.py`, em `st.session_state` |
 | RF8 · avaliar no teste fixo | `avaliar.py` e `avaliacao.py`; visão admin |
 | RF9 · rodadas | `resultados/rodadas.csv`; visão admin |

@@ -3,7 +3,19 @@ import numpy as np
 import pytest
 
 from fuzzy_knn import (classificar, decidir, formatar_pertinencia, fuzzy_knn, mensagem,
-                       na_area_cinzenta, texto_pertinencias)
+                       na_area_cinzenta, pertinencia_na_tela, texto_pertinencias)
+
+# As bordas: a classe e a faixa saem da pertinência a cachorro com duas casas.
+# (pertinência a cachorro, o que a tela mostra, classe esperada, na área cinzenta?)
+BORDAS = [
+    (0.6048, "0,60", 1, True),    # arredonda para baixo e entra na faixa
+    (0.3965, "0,40", 0, True),    # arredonda para cima e entra na faixa
+    (0.3993, "0,40", 0, True),
+    (0.6050, "0,61", 1, False),   # o meio sobe e sai da faixa: caixa verde
+    (0.5049, "0,50", 0, True),    # desce até o empate: não cachorro
+    (0.5050, "0,51", 1, True),    # o meio sobe: cachorro
+    (0.4950, "0,50", 0, True),    # sobe até o empate: não cachorro
+]
 
 # (classe, pertinência a não cachorro, pertinência a cachorro, começo esperado da frase).
 # Cachorro vencendo, não cachorro vencendo, empate, dentro e fora da área cinzenta.
@@ -47,14 +59,39 @@ def test_pertinencias_somam_1():
 
 
 def test_decisao_pela_maior_pertinencia():
-    assert decidir(0.35, 0.65) == 1
-    assert decidir(0.55, 0.45) == 0
-    assert decidir(0.50, 0.50) == 0                          # exatamente 0,50 → não cachorro
+    assert decidir(0.65) == 1
+    assert decidir(0.45) == 0
+    assert decidir(0.50) == 0                                # exatamente 0,50 → não cachorro
 
 
 def test_area_cinzenta_inclui_os_limites():
     assert na_area_cinzenta(0.40) and na_area_cinzenta(0.50) and na_area_cinzenta(0.60)
     assert not na_area_cinzenta(0.39) and not na_area_cinzenta(0.61)
+
+
+@pytest.mark.parametrize("p_cachorro, na_tela, classe, cinzenta", BORDAS)
+def test_bordas_decidem_pela_pertinencia_de_duas_casas(p_cachorro, na_tela, classe, cinzenta):
+    assert formatar_pertinencia(p_cachorro) == na_tela
+    assert pertinencia_na_tela(p_cachorro) == float(na_tela.replace(",", "."))
+    assert decidir(p_cachorro) == classe                     # a classe sai do arredondado
+    assert na_area_cinzenta(p_cachorro) is cinzenta          # a faixa também
+
+
+@pytest.mark.parametrize("p_cachorro, na_tela, classe, cinzenta", BORDAS)
+def test_bordas_a_tela_nao_desmente_a_classe(p_cachorro, na_tela, classe, cinzenta):
+    texto = mensagem(classe, p_cachorro)
+    vencedora, perdedora = texto_pertinencias(classe, p_cachorro).split(" · ")
+    mostrado = numero(vencedora.split()[-1])
+    assert mostrado == numero(texto.split("pertinência")[1])  # título e caixa, o mesmo número
+    assert mostrado >= 0.50                                   # a vencedora nunca é a menor
+    assert mostrado + numero(perdedora.split()[-1]) == pytest.approx(1.0)
+
+
+def test_borda_do_empate_em_0_495():
+    # 0,495 sobe para 0,50: empate na tela, e o empate fica como não cachorro.
+    assert decidir(0.495) == 0
+    assert mensagem(0, 0.495) == "Não é cachorro · pertinência 0,50"
+    assert texto_pertinencias(0, 0.495) == "não cachorro 0,50 · cachorro 0,50"
 
 
 def test_formatar_pertinencia_usa_duas_casas_e_virgula():
@@ -78,7 +115,7 @@ def test_formatar_pertinencia_arredonda_o_meio_para_cima(valor, esperado):
 
 @pytest.mark.parametrize("classe, p_nao, p_cachorro, comeco", CASOS)
 def test_mensagem_mostra_a_pertinencia_da_classe_vencedora(classe, p_nao, p_cachorro, comeco):
-    texto = mensagem(classe, p_nao, p_cachorro)
+    texto = mensagem(classe, p_cachorro)
     assert texto.startswith(comeco)                       # a classe certa vem na frente
     assert "pertinência" in texto
     assert "%" not in texto                               # pertinência não é porcentagem
@@ -88,7 +125,7 @@ def test_mensagem_mostra_a_pertinencia_da_classe_vencedora(classe, p_nao, p_cach
 
 @pytest.mark.parametrize("classe, p_nao, p_cachorro, comeco", CASOS)
 def test_linha_das_pertinencias_traz_a_vencedora_primeiro(classe, p_nao, p_cachorro, comeco):
-    vencedora, perdedora = texto_pertinencias(classe, p_nao, p_cachorro).split(" · ")
+    vencedora, perdedora = texto_pertinencias(classe, p_cachorro).split(" · ")
     assert "%" not in vencedora and "%" not in perdedora
     assert vencedora.startswith("cachorro" if classe == 1 else "não cachorro")
     assert perdedora.startswith("não cachorro" if classe == 1 else "cachorro")

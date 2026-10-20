@@ -7,28 +7,32 @@ import shutil
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
+import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix
 
 import config
 import dados
-from fuzzy_knn import fuzzy_knn, limites_area_cinzenta, na_area_cinzenta
+from fuzzy_knn import (decidir, fuzzy_knn, limites_area_cinzenta, na_area_cinzenta,
+                       pertinencia_na_tela)
 
 ARQ_RODADAS = config.PASTA_RESULTADOS / "rodadas.csv"
 CAMPOS_RODADAS = ["rodada", "o_que_mudou", "extrator", "k", "bairro", "VP", "FN", "FP", "VN",
                   "acuracia", "area_cinzenta", "meta", "data"]
 CAMPOS_RESULTADOS = ["arquivo", "classe_real", "dataset", "categoria_original", "p_nao_cachorro",
-                     "p_cachorro", "resposta", "casa", "area_cinzenta", "vizinhas", "classes_vizinhas"]
+                     "p_cachorro", "p_cachorro_tela", "resposta", "casa", "area_cinzenta",
+                     "vizinhas", "classes_vizinhas"]
 
 # As 4 situações da galeria da área cinzenta, na ordem do PRD:
 # (rótulo real, pertinência a cachorro, o modelo disse, resultado)
-# Os limites da faixa vêm do config; o 0,50 é fixo porque é onde a classe vira, não um ajuste.
+# Os limites da faixa vêm do config; o 0,50 e o 0,51 são fixos porque é onde a classe vira,
+# e com duas casas o degrau acima de 0,50 é 0,51.
 MINIMO_CINZENTA, MAXIMO_CINZENTA = limites_area_cinzenta()
 CASAS = ("VP", "FN", "VN", "FP")
 SITUACOES = {
-    "VP": ("cachorro", f"mais de 0,50 até {MAXIMO_CINZENTA}", "é cachorro", "acertou (VP)"),
+    "VP": ("cachorro", f"0,51 a {MAXIMO_CINZENTA}", "é cachorro", "acertou (VP)"),
     "FN": ("cachorro", f"{MINIMO_CINZENTA} a 0,50", "não é cachorro", "errou (FN)"),
     "VN": ("não cachorro", f"{MINIMO_CINZENTA} a 0,50", "não é cachorro", "acertou (VN)"),
-    "FP": ("não cachorro", f"mais de 0,50 até {MAXIMO_CINZENTA}", "é cachorro", "errou (FP)"),
+    "FP": ("não cachorro", f"0,51 a {MAXIMO_CINZENTA}", "é cachorro", "errou (FP)"),
 }
 
 # Cada sigla por extenso, para a legenda da visão admin: (nome, o que aconteceu, acertou?).
@@ -95,7 +99,8 @@ def avaliar_teste_fixo(bairro, teste, k=config.K):
     X_treino_num, y_treino = bairro["X"], bairro["y"]
     X_teste_num, y_teste = teste["X"], teste["y"]          # o y_teste fica guardado; o modelo não vê
     pert, viz = fuzzy_knn(X_treino_num, y_treino, X_teste_num, k=k)   # pertinências e vizinhas das 80
-    y_previsto = (pert[:, 1] > pert[:, 0]).astype(int)               # maior pertinência → 1 ou 0
+    # Mesma regra da tela: o decidir arredonda para duas casas antes de comparar.
+    y_previsto = np.array([decidir(p) for p in pert[:, 1]])
     casas = contar_casas(y_teste, y_previsto)
     acuracia = accuracy_score(y_teste, y_previsto)                   # (VP + VN) ÷ total
 
@@ -107,8 +112,9 @@ def avaliar_teste_fixo(bairro, teste, k=config.K):
             "classe_real": dados.classe_do_rotulo(real),
             "dataset": teste["datasets"][i],
             "categoria_original": teste["categorias"][i],
-            "p_nao_cachorro": f"{pert[i, 0]:.4f}",
+            "p_nao_cachorro": f"{pert[i, 0]:.4f}",       # medida crua, para conferir depois
             "p_cachorro": f"{pert[i, 1]:.4f}",
+            "p_cachorro_tela": f"{pertinencia_na_tela(pert[i, 1]):.2f}",   # o que decidiu classe e faixa
             "resposta": dados.classe_do_rotulo(previsto),
             "casa": casa(real, previsto),
             "area_cinzenta": "sim" if na_area_cinzenta(pert[i, 1]) else "não",
