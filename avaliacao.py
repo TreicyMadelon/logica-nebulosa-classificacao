@@ -11,7 +11,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 
 import config
 import dados
-from fuzzy_knn import fuzzy_knn, na_area_cinzenta
+from fuzzy_knn import fuzzy_knn, limites_area_cinzenta, na_area_cinzenta
 
 ARQ_RODADAS = config.PASTA_RESULTADOS / "rodadas.csv"
 CAMPOS_RODADAS = ["rodada", "o_que_mudou", "extrator", "k", "bairro", "VP", "FN", "FP", "VN",
@@ -21,12 +21,14 @@ CAMPOS_RESULTADOS = ["arquivo", "classe_real", "dataset", "categoria_original", 
 
 # As 4 situações da galeria da área cinzenta, na ordem do PRD:
 # (rótulo real, pertinência a cachorro, o modelo disse, resultado)
+# Os limites da faixa vêm do config; o 0,50 é fixo porque é onde a classe vira, não um ajuste.
+MINIMO_CINZENTA, MAXIMO_CINZENTA = limites_area_cinzenta()
 CASAS = ("VP", "FN", "VN", "FP")
 SITUACOES = {
-    "VP": ("cachorro", "mais de 0,50 até 0,60", "é cachorro", "acertou (VP)"),
-    "FN": ("cachorro", "0,40 a 0,50", "não é cachorro", "errou (FN)"),
-    "VN": ("não cachorro", "0,40 a 0,50", "não é cachorro", "acertou (VN)"),
-    "FP": ("não cachorro", "mais de 0,50 até 0,60", "é cachorro", "errou (FP)"),
+    "VP": ("cachorro", f"mais de 0,50 até {MAXIMO_CINZENTA}", "é cachorro", "acertou (VP)"),
+    "FN": ("cachorro", f"{MINIMO_CINZENTA} a 0,50", "não é cachorro", "errou (FN)"),
+    "VN": ("não cachorro", f"{MINIMO_CINZENTA} a 0,50", "não é cachorro", "acertou (VN)"),
+    "FP": ("não cachorro", f"mais de 0,50 até {MAXIMO_CINZENTA}", "é cachorro", "errou (FP)"),
 }
 
 # Cada sigla por extenso, para a legenda da visão admin: (nome, o que aconteceu, acertou?).
@@ -56,9 +58,12 @@ def percentual(valor, casas_decimais=1):
     Arredonda meio-para-cima. No teste fixo de 80 imagens a acurácia é múltipla de
     1,25 ponto, então metade dos valores cai exatamente no empate (73/80 = 91,25%);
     o arredondamento do Python desempataria ora para cima, ora para baixo.
+
+    Decimal(str(valor)), e não Decimal(valor), pela mesma razão do formatar_pertinencia:
+    partindo do float, 23/80 e mais duas acurácias desciam uma casa (28,7% no lugar de 28,8%).
     """
     casas = Decimal(10) ** -casas_decimais
-    arredondado = Decimal(valor * 100).quantize(casas, rounding=ROUND_HALF_UP)
+    arredondado = (Decimal(str(valor)) * 100).quantize(casas, rounding=ROUND_HALF_UP)
     return f"{arredondado}%".replace(".", ",")
 
 

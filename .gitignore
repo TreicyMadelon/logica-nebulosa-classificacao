@@ -14,8 +14,9 @@ yolov8n.pt
 
 # As 400 imagens da base e as cópias feitas pela triagem e pela avaliação.
 # Vêm do ImageNet e do Pascal VOC, que não permitem redistribuição.
-# metadados.csv e teste_fixo.txt remontam a base idêntica com montar_base.py:
-# a semente do sorteio é fixa (config.SEMENTE).
+# Quem clonar baixa as duas bases de origem e roda: python montar_base.py --remontar
+# Isso copia exatamente as imagens que o metadados.csv lista, sem sortear de novo,
+# então a base sai idêntica à que gerou os resultados registrados.
 base_imagens/cachorro/
 base_imagens/nao_cachorro/
 triagem/descartadas/

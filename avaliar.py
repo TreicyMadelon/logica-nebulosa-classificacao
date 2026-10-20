@@ -19,6 +19,7 @@ import avaliacao
 import config
 import dados
 from avaliacao import percentual
+from fuzzy_knn import limites_area_cinzenta
 
 
 def imprimir_matriz(casas):
@@ -58,7 +59,8 @@ def main():
 
     galeria = avaliacao.galeria_area_cinzenta(medidas["resultados"])
     na_faixa = sum(len(lista) for lista in galeria.values())
-    print(f"\nÁrea cinzenta (pertinência a cachorro de 0,40 a 0,60): {na_faixa} de {total} imagens")
+    minimo, maximo = limites_area_cinzenta()
+    print(f"\nÁrea cinzenta (pertinência a cachorro de {minimo} a {maximo}): {na_faixa} de {total} imagens")
     print("  " + " · ".join(f"{situacao} {len(galeria[situacao])}" for situacao in avaliacao.CASAS))
 
     if args.rodada is not None:

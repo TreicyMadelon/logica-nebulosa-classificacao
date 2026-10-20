@@ -2,10 +2,11 @@
 
 Rodar:  streamlit run app.py
 
-Visão principal (home): upload → a classe com o grau (pertinência da classe vencedora);
-se a imagem cair na área cinzenta, o aviso com as duas pertinências e as 5 vizinhas;
-e o bloco "Imagens anteriores", que fica só na sessão (st.session_state) e nunca
-entra na base.
+Visão principal (home): upload → a classe com o grau (pertinência da classe vencedora)
+e, sempre, a caixa colorida da faixa em que a pertinência caiu (verde, amarela ou
+vermelha), com as duas pertinências; na área cinzenta, também as fotos das 5 vizinhas.
+Fecha com o bloco "Imagens anteriores", que fica só na sessão (st.session_state) e
+nunca entra na base.
 
 Visão admin: os resultados no teste fixo (rodadas, matriz de confusão, acurácia,
 meta e galeria da área cinzenta), lidos do que o avaliar.py registrou.
@@ -20,7 +21,7 @@ import config
 import dados
 from avaliacao import percentual
 from extrator import carregar_extrator, extrair
-from fuzzy_knn import classificar, formatar_pertinencia, texto_pertinencias
+from fuzzy_knn import classificar, formatar_pertinencia, limites_area_cinzenta, texto_pertinencias
 
 st.set_page_config(page_title="Cachorro × não cachorro", page_icon="🐶", layout="wide")
 
@@ -67,15 +68,17 @@ def plural(n, singular, plural_):
 
 # Em qual das três faixas a pertinência a cachorro caiu: título, regra da faixa e a cor da caixa.
 # A caixa só explica a decisão que o Fuzzy k-NN já tomou; ela não muda a classe.
+# Os números das regras vêm do config, pelo limites_area_cinzenta: mudar a faixa lá muda estes textos.
+MINIMO_CINZENTA, MAXIMO_CINZENTA = limites_area_cinzenta()
 FAIXAS = {
     "cinzenta": ("⚠ Imagem na área cinzenta",
-                 "Toda imagem enviada pelo usuário que cair entre 0,4 e 0,6",
+                 f"Toda imagem enviada pelo usuário que cair entre {MINIMO_CINZENTA} e {MAXIMO_CINZENTA}",
                  "warning"),
     "cachorro": ("🐶 Imagem na área é cachorro",
-                 "Toda imagem enviada pelo usuário que cair acima de 0,60",
+                 f"Toda imagem enviada pelo usuário que cair acima de {MAXIMO_CINZENTA}",
                  "success"),
     "nao_cachorro": ("❌ Imagem na área não é cachorro",
-                     "Toda imagem enviada pelo usuário que cair abaixo de 0,40",
+                     f"Toda imagem enviada pelo usuário que cair abaixo de {MINIMO_CINZENTA}",
                      "error"),
 }
 
@@ -102,7 +105,10 @@ def texto_caixa(resultado):
 
 
 def mostrar_resultado(item):
-    """Etapa 11: sempre a classe com o grau; o aviso só na área cinzenta (ele não muda a classe)."""
+    """Etapa 11: sempre a classe com o grau e a caixa da faixa; as 5 fotos só na área cinzenta.
+
+    Nenhuma das caixas muda a classe: elas só explicam a decisão que o Fuzzy k-NN já tomou.
+    """
     resultado = item["resultado"]
     col_imagem, col_texto = st.columns([1, 2])
     with col_imagem:
@@ -219,7 +225,7 @@ def linha_da_tabela(rodada):
 
 
 def texto_legenda(situacao, com_marca=False):
-    """A sigla da matriz por extenso: "FP · falso positivo — não era cachorro e o modelo disse cachorro"."""
+    """A sigla da matriz por extenso: "FP · falso positivo — rótulo real não cachorro e classe cachorro"."""
     nome, explicacao, acertou = avaliacao.LEGENDA_CASAS[situacao]
     marca = f" {'✓' if acertou else '✗'}" if com_marca else ""
     return f"**{situacao} · {nome}** — {explicacao}{marca}"
@@ -264,8 +270,9 @@ def mostrar_galeria(resultados):
     galeria = avaliacao.galeria_area_cinzenta(resultados)
     na_faixa = sum(len(lista) for lista in galeria.values())
     st.subheader(f"Galeria da área cinzenta · {na_faixa} de {len(resultados)} imagens")
-    st.caption("Imagens do teste fixo com pertinência a cachorro de 0,40 a 0,60. Os erros daqui também "
-               "contam na matriz; as vizinhas mostram por que o modelo ficou em dúvida.")
+    st.caption(f"Imagens do teste fixo com pertinência a cachorro de {MINIMO_CINZENTA} a "
+               f"{MAXIMO_CINZENTA}. Os erros daqui também contam na matriz; as vizinhas mostram "
+               "por que o modelo ficou em dúvida.")
     st.caption("Em cada bloco abaixo, três coisas diferentes: **rótulo real** é o gabarito da base, "
                "o que a imagem é de fato; **pertinência** é o número que o Fuzzy k-NN calculou, de 0 a 1; "
                "**classe** é a decisão tirada desse número — acima de 0,50, cachorro. "
@@ -318,7 +325,7 @@ def visao_admin():
 # ---------------------------------------------------------------- navegação
 visao = st.sidebar.radio("Visão", ["Visão principal", "Visão admin"])
 st.sidebar.caption(f"k = {config.K} · área cinzenta: pertinência a cachorro de "
-                   f"{config.FAIXA_CINZENTA[0]:.2f} a {config.FAIXA_CINZENTA[1]:.2f}".replace(".", ","))
+                   f"{MINIMO_CINZENTA} a {MAXIMO_CINZENTA}")
 if visao == "Visão principal":
     visao_principal()
 else:

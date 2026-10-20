@@ -43,8 +43,11 @@ def decidir(p_nao, p_cachorro):
 
 
 def na_area_cinzenta(p_cachorro):
-    """Faixa do professor: pertinência a cachorro de 0,40 a 0,60, inclusive
-    (classe vencedora entre 51% e 60%). Só marca a dúvida; não muda a classe."""
+    """Faixa do professor, lida de config.FAIXA_CINZENTA (hoje pertinência a cachorro de
+    0,40 a 0,60, limites inclusive, com a classe vencedora de 0,51 a 0,60).
+
+    Só marca a dúvida; não muda a classe.
+    """
     minimo, maximo = config.FAIXA_CINZENTA
     return minimo <= p_cachorro <= maximo
 
@@ -58,6 +61,16 @@ def formatar_pertinencia(valor):
     """
     arredondado = Decimal(str(valor)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     return f"{arredondado}".replace(".", ",")
+
+
+def limites_area_cinzenta():
+    """Os dois limites da faixa, já no formato da tela: ("0,40", "0,60").
+
+    Todo texto que cita a faixa sai daqui, e daqui sai de config.FAIXA_CINZENTA: mudar a
+    faixa no config muda a classificação e os textos juntos, sem sobrar número escrito à mão.
+    """
+    minimo, maximo = config.FAIXA_CINZENTA
+    return formatar_pertinencia(minimo), formatar_pertinencia(maximo)
 
 
 def mensagem(classe, p_nao, p_cachorro):

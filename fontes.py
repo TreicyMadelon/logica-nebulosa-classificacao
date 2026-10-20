@@ -202,6 +202,46 @@ def copiar_para_base(candidata, classe):
     }
 
 
+def copiar_da_lista(linhas):
+    """Copia para a base exatamente as fotos que as linhas do metadados listam, sem sortear.
+
+    É o caminho de quem clona o repositório: o metadados.csv vem no Git, as imagens não (o
+    ImageNet e o Pascal VOC não permitem redistribuição). Sortear de novo não serviria —
+    a triagem substituiu uma foto, e um sorteio novo mudaria algumas escolhas.
+
+    O nome na base é "<dataset>_<nome original>", então dá para achar cada foto na origem.
+    Devolve (copiadas, já estavam, não encontradas).
+    """
+    precisa = {linha["dataset"] for linha in linhas}
+    pasta_voc = config.PASTA_VOC / "JPEGImages"
+    if "imagenet" in precisa and not config.PASTA_IMAGENET_IMAGENS.is_dir():
+        sys.exit(f"Não encontrei as imagens do ImageNet em:\n  {config.PASTA_IMAGENET_IMAGENS}\nVeja o README.")
+    if "voc" in precisa and not pasta_voc.is_dir():
+        sys.exit(f"Não encontrei as imagens do Pascal VOC em:\n  {pasta_voc}\nVeja o README.")
+
+    imagenet = {}
+    if "imagenet" in precisa:
+        imagenet = {p.name: p for p in config.PASTA_IMAGENET_IMAGENS.rglob("*")
+                    if p.suffix.lower() in EXTENSOES_IMAGEM}
+
+    copiadas, ja_estavam, sem_origem = [], [], []
+    for linha in linhas:
+        nome, dataset = linha["arquivo"], linha["dataset"]
+        destino = config.PASTAS_CLASSE[linha["classe"]] / nome
+        if destino.exists():
+            ja_estavam.append(nome)
+            continue
+        original = nome[len(dataset) + 1:] if nome.startswith(f"{dataset}_") else nome
+        origem = imagenet.get(original) if dataset == "imagenet" else pasta_voc / original
+        if origem is None or not origem.exists():
+            sem_origem.append(nome)
+            continue
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(origem, destino)
+        copiadas.append(nome)
+    return copiadas, ja_estavam, sem_origem
+
+
 def arquivos_ja_usados():
     """Fotos que já estão na base ou que foram descartadas na triagem (não voltam)."""
     usados = {linha["arquivo"] for linha in dados.ler_metadados()}

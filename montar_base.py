@@ -3,6 +3,8 @@
 Uso:
     python montar_base.py
         monta a base: 200 cachorro + 200 não cachorro, 100 de cada dataset de origem em cada classe
+    python montar_base.py --remontar
+        clone do repositório: copia as imagens que o metadados.csv já lista, sem sortear de novo
     python montar_base.py --acrescentar 20
         melhoria: + 20 imagens de cada dataset em cada classe (80 no total)
     python montar_base.py --acrescentar 20 --categorias n02114367,n02114548
@@ -54,7 +56,8 @@ def pasta_tem_arquivos(pasta):
 def montar_base_inicial():
     if config.ARQ_METADADOS.exists():
         sys.exit("A base já existe (base_imagens/metadados.csv). "
-                 "Para acrescentar imagens numa melhoria, use --acrescentar.")
+                 "Para copiar as imagens que ele lista, use --remontar; "
+                 "para acrescentar imagens numa melhoria, use --acrescentar.")
     for pasta in config.PASTAS_CLASSE.values():
         if pasta_tem_arquivos(pasta):
             sys.exit(f"A pasta {pasta} já tem arquivos, mas não há metadados. Esvazie a pasta e rode de novo.")
@@ -71,6 +74,36 @@ def montar_base_inicial():
     print(f"\nBase montada: {len(linhas)} imagens.")
     imprimir_distribuicao(linhas)
     print("\nPróximo passo: python triagem.py")
+
+
+def remontar_base():
+    """Refaz a base copiando exatamente as imagens que o metadados.csv lista (Etapas 1 a 3).
+
+    Para quem clona o repositório: os metadados e o teste fixo vêm no Git, as imagens não.
+    Não sorteia nada, então a base sai idêntica à que gerou os resultados registrados —
+    inclusive a substituição que a triagem fez.
+    """
+    if not config.ARQ_METADADOS.exists():
+        sys.exit(f"Não encontrei {config.ARQ_METADADOS}. Para montar a base do zero, "
+                 "rode python montar_base.py sem --remontar.")
+    linhas = dados.ler_metadados()
+    print(f"Procurando nas bases de origem as {len(linhas)} imagens do metadados.csv...")
+    copiadas, ja_estavam, sem_origem = fontes.copiar_da_lista(linhas)
+
+    if sem_origem:
+        print(f"\nNão achei {len(sem_origem)} imagem(ns) nas bases de origem:")
+        for nome in sem_origem[:10]:
+            print(f"  {nome}")
+        if len(sem_origem) > 10:
+            print(f"  ... e mais {len(sem_origem) - 10}")
+        sys.exit("Confira se as duas bases de origem estão completas. Veja o README.")
+
+    print(f"\nBase remontada: {len(copiadas)} imagem(ns) copiada(s), "
+          f"{len(ja_estavam)} já estava(m) na pasta.")
+    imprimir_distribuicao(linhas)
+    print("\nAs imagens são as mesmas que geraram os resultados registrados: a triagem já foi "
+          "aplicada e não precisa ser refeita.")
+    print("Próximo passo: python montar_bairro.py")
 
 
 def separar_categorias(texto):
@@ -136,10 +169,17 @@ def main():
                         help="melhoria: acrescenta N imagens de cada dataset em cada classe (4 × N no total)")
     parser.add_argument("--categorias",
                         help="só com --acrescentar: códigos do ImageNet ou nomes do Pascal VOC, separados por vírgula")
+    parser.add_argument("--remontar", action="store_true",
+                        help="copia as imagens que o metadados.csv já lista, sem sortear "
+                             "(para quem clonou o repositório)")
     args = parser.parse_args()
     if args.categorias and args.acrescentar is None:
         parser.error("--categorias só vale junto com --acrescentar")
-    if args.acrescentar is not None:
+    if args.remontar and args.acrescentar is not None:
+        parser.error("--remontar não vai junto com --acrescentar")
+    if args.remontar:
+        remontar_base()
+    elif args.acrescentar is not None:
         if args.acrescentar <= 0:
             parser.error("--acrescentar precisa ser maior que zero")
         acrescentar(args.acrescentar, args.categorias)

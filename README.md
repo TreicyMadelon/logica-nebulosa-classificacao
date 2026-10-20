@@ -58,9 +58,11 @@ A classe é a de **maior pertinência**, decidida por um `if` comum. A pertinên
 
 | pertinência a cachorro | o que a tela mostra |
 |---|---|
-| abaixo de 0,40 | "Não é cachorro", com o grau |
-| de 0,40 a 0,60 | a classe com o grau **e** o aviso "⚠ Imagem na área cinzenta" |
-| acima de 0,60 | "É cachorro", com o grau |
+| abaixo de 0,40 | "Não é cachorro", com o grau, na caixa vermelha "❌ Imagem na área não é cachorro" |
+| de 0,40 a 0,60 | a classe com o grau, na caixa amarela "⚠ Imagem na área cinzenta", **e** as 5 vizinhas |
+| acima de 0,60 | "É cachorro", com o grau, na caixa verde "🐶 Imagem na área é cachorro" |
+
+A caixa aparece sempre, nas três faixas: ela traz a regra da faixa, a linha "pertinência da imagem:" com as duas pertinências e a linha "parecida com:". As fotos das 5 vizinhas são exclusivas da área cinzenta.
 
 A área cinzenta não muda a classe: só marca que a decisão foi apertada e mostra as 5 vizinhas, que explicam a dúvida. 
 
@@ -156,6 +158,8 @@ bases_origem/
 1. **Montar a base**: `python montar_base.py`
    Copia as 400 fotos para `base_imagens/` e grava os metadados.
 
+   Se você clonou este repositório, use `python montar_base.py --remontar`. As imagens não entram no Git (o ImageNet e o Pascal VOC não permitem redistribuição), mas o `metadados.csv` entra: o `--remontar` copia das bases de origem exatamente as 400 que ele lista, sem sortear de novo. A base sai idêntica à que gerou os resultados registrados, com a substituição da triagem já aplicada — então você pode pular direto para o passo 3.
+
    | classe | categoria real | dataset de origem | imagens |
    |---|---|---|---|
    | cachorro | raças domésticas | ImageNet (validação) | 100 |
@@ -183,7 +187,7 @@ bases_origem/
 
 `streamlit run app.py`. Na barra lateral, escolha a visão:
 
-- **Visão principal**: envie uma imagem e veja a classe com o grau. Na área cinzenta, aparece o bloco "⚠ Imagem na área cinzenta" com as duas pertinências e as 5 vizinhas (fotos e classes). O bloco "Imagens anteriores" guarda as imagens enviadas só durante a sessão: somem ao fechar ou recarregar a página e não entram na base.
+- **Visão principal**: envie uma imagem e veja a classe com o grau. Abaixo vem sempre a caixa da faixa em que a pertinência caiu — verde "🐶 Imagem na área é cachorro", amarela "⚠ Imagem na área cinzenta" ou vermelha "❌ Imagem na área não é cachorro" — com a regra da faixa, as duas pertinências e a contagem das vizinhas. Na área cinzenta, aparecem também as fotos das 5 vizinhas, com a classe de cada uma. O bloco "Imagens anteriores" guarda as imagens enviadas só durante a sessão: somem ao fechar ou recarregar a página e não entram na base.
 - **Visão admin**: tabela das rodadas e, para a rodada escolhida, a matriz de confusão, a acurácia, a meta e a galeria da área cinzenta nas 4 situações (VP, FN, VN, FP), cada imagem com as suas 5 vizinhas.
 
 Meta no teste fixo: acurácia ≥ 90% (72 das 80), com FN ≤ 6 e FP ≤ 6.
@@ -212,10 +216,11 @@ Uma mudança por rodada (dados, uma configuração ou o código), sempre testada
 | RF3 · pertinências | `fuzzy_knn.py` (`fuzzy_knn`): 5 vizinhas, peso 1/d², as duas pertinências somam 1 |
 | RF4 · decisão | `fuzzy_knn.py` (`decidir`): maior pertinência por um `if` comum; exatamente 0,50 → não cachorro |
 | RF5 · resultado | `fuzzy_knn.py` (`mensagem`): classe + pertinência da classe vencedora |
-| RF6 · área cinzenta | `fuzzy_knn.py` (`na_area_cinzenta`) e o bloco do `app.py`, com as duas pertinências e as 5 vizinhas |
+| RF6 · área cinzenta | `fuzzy_knn.py` (`na_area_cinzenta`) e a caixa amarela do `app.py`, a única com as fotos das 5 vizinhas |
 | RF7 · imagens anteriores | `app.py`, em `st.session_state` |
 | RF8 · avaliar no teste fixo | `avaliar.py` e `avaliacao.py`; visão admin |
 | RF9 · rodadas | `resultados/rodadas.csv`; visão admin |
+| RF10 · faixa da pertinência | `app.py` (`FAIXAS`, `faixa_do_resultado`, `texto_caixa`): toda imagem recebe a caixa da sua faixa — verde acima de 0,60, amarela de 0,40 a 0,60, vermelha abaixo de 0,40 — com a linha "pertinência da imagem:" e a vencedora primeiro |
 
 ## Escolhas que o PRD não fixa
 
