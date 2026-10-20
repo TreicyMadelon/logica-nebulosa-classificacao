@@ -160,7 +160,9 @@ def registrar_rodada(numero, o_que_mudou, medidas, extrator, k, tamanho_bairro):
         if resultado["casa"] in ("FP", "FN"):
             origem = dados.localizar_imagem(resultado["arquivo"])
             if origem:
-                destino = pasta / resultado["casa"] / f"p{float(resultado['p_cachorro']):.2f}_{resultado['arquivo']}"
+                # O nome lê a pertinência que já decidiu a classe e a faixa, sem arredondar
+                # de novo: assim ele nunca discorda do que a tela mostra.
+                destino = pasta / resultado["casa"] / f"p{resultado['p_cachorro_tela']}_{resultado['arquivo']}"
                 destino.parent.mkdir(exist_ok=True)
                 shutil.copy2(origem, destino)
 
